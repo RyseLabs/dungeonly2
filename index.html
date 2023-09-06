@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rogue-like Text RPG</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <style>
+      body, html {
+    height: 100%;
+    margin: 0;
+}
+
+#intro {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background-color: #282c34;
+    color: white;
+}
+
+#intro h1 {
+    margin-bottom: 20px;
+    font-size: 36px;
+}
+
+#intro p {
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+#intro button {
+    margin: 10px;
+    padding: 10px 20px;
+    font-size: 18px;
+    border: none;
+    border-radius: 5px;
+    background-color: #61dafb;
+    color: #282c34;
+}
+
+
+#app {
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background-color: #282c34;
+    color: white;
+}
+
+#surrounding-area-container {
+  padding: 15px;
+}
+
+#hud-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #282c34;
+    color: white;
+}
+
+#actions-menu {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #282c34;
+    color: white;
+    width: 100%; /* To ensure it spans the full width */
+}
+
+#actions {
+    display: flex;
+    justify-content: center;
+    align-items: stretch; /* ensures all children (the buttons) stretch to the height of the tallest one */
+    flex-wrap: wrap; /* allows buttons to wrap to the next line if there's not enough space */  width: 100%;
+}
+
+
+
+#story {
+    width: 70%;
+    border: 2px solid #333;
+    padding: 10px;
+    height: 300px; /* Fixed height */
+    overflow-y: auto; /* Scrollable */
+}
+
+#hud {
+    width: 30%;
+    border: 2px solid #333;
+    padding: 10px;
+    height: 300px; /* Fixed height */
+    overflow-y: auto; /* Scrollable */
+}
+
+#actions button {
+    flex: 1; /* allows each button to grow and take up available space */
+    margin: 10px;
+    padding: 10px;
+    font-size: 18px;
+    border: none;
+    border-radius: 5px;
+    background-color: #61dafb;
+    color: #282c34;
+    min-width: 30%;
+    min-height: 60px; /* optional, you can set a minimum height if needed */
+}
+
+#actions button:hover {
+    background-color: #21a1f1;
+}
+
+.capitalize-first::first-letter {
+    text-transform: capitalize;
+}
+
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.05);  /* semi-transparent background */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;  /* ensure it's above other elements */
+}
+
+.fas.fa-spinner {
+    font-size: 2em;
+}
+
+.full-width-btn {
+    width: 100%;
+}
+    </style>
+</head>
+
+<body>
+    <div id="app">
+    <div id="intro" v-if="showIntro">
+      <h1>
+        A new adventure begins...
+      </h1>
+      <p>What name will you etch into the annals of history?</p>
+      <input v-model="playerName" placeholder="Enter your name...">
+      <button @click="startGame">
+        Play
+      </button>
+    </div>
+    <div id="intro" v-if="showClassSelection">
+        <h1>Welcome, {{ playerName }}</h1>
+        <p>Choose your destiny...</p>
+        <button @click="selectClass('Warrior')">Warrior</button>
+        <button @click="selectClass('Mage')">Mage</button>
+        <button @click="selectClass('Rogue')">Rogue</button>
+    </div>
+    <div id="intro" style="margin: 15px;" v-if="showStorySelection">
+    <h1>Where does your tale commence?</h1>
+    <p>The fates have many paths for you, but the choice is ultimately yours...</p>
+    
+    <div v-if="storyGroup === 1">
+        <button class="full-width-btn" @click="selectStory('You\'ve awakened in a bustling city with no memories, only a peculiar amulet in your hand.')">You've awakened in a bustling city with no memories, only a peculiar amulet in your hand</button>
+        <button class="full-width-btn" @click="selectStory('After deciphering an ancient map, you stand at the entrance of a forgotten temple.')">After deciphering an ancient map, you stand at the entrance of a forgotten temple</button>
+        <button class="full-width-btn" @click="selectStory('On the run from a powerful enemy, you\'ve just boarded a mysterious ship set for unknown shores.')">On the run from a powerful enemy, you've just boarded a mysterious ship set for unknown shores</button>
+        <button class="full-width-btn" @click="showNextStoryGroup">More</button>
+    </div>
+    
+    <div v-if="storyGroup === 2">
+        <button class="full-width-btn" @click="selectStory('Having sworn an oath to a dying stranger, you find yourself in possession of a cryptic diary.')">Having sworn an oath to a dying stranger, you find yourself in possession of a cryptic diary</button>
+        <button class="full-width-btn" @click="selectStory('Under the light of a rare celestial event, you discover a hidden portal in the forest.')">Under the light of a rare celestial event, you discover a hidden portal in the forest</button>
+        <button class="full-width-btn" @click="selectStory('A renowned inventor has just chosen you as the tester for their groundbreaking device.')">A renowned inventor has just chosen you as the tester for their groundbreaking device</button>
+        <button class="full-width-btn" @click="showNextStoryGroup">More</button>
+    </div>
+
+    <div v-if="storyGroup === 3">
+        <button class="full-width-btn" @click="selectStory('Having rescued a magical creature, you are now bound by an unspoken pact, leading you on an unpredictable journey.')">Having rescued a magical creature, you are now bound by an unspoken pact, leading you on an unpredictable journey</button>
+        <button class="full-width-btn" @click="selectStory('You\'ve been inducted into a secret society, and tonight is your first clandestine gathering.')">You've been inducted into a secret society, and tonight is your first clandestine gathering</button>
+        <button class="full-width-btn" @click="selectStory('On the eve of a grand festival, a mysterious figure hands you a mask, urging you to change the course of events.')">On the eve of a grand festival, a mysterious figure hands you a mask, urging you to change the course of events</button>
+        <button class="full-width-btn" @click="showNextStoryGroup">More</button>
+    </div>
+
+    <div v-if="storyGroup === 4">
+        <button class="full-width-btn" @click="selectStory('You\'ve just inherited a dilapidated manor, only to find it inhabited by otherworldly beings.')">You've just inherited a dilapidated manor, only to find it inhabited by otherworldly beings</button>
+        <button class="full-width-btn" @click="showNextStoryGroup">More</button>
+    </div>
+</div>
+
+      <div id="game-container" v-if="showGame">
+        <div id="surrounding-area-container">
+          <h3>Map: {{ map }}</h3>
+          <p>Scene: {{ scene }}</p>
+        </div>
+        <div id="hud-container">
+          <div id="story" ref="storyContainer">
+              <p v-for="story in stories" :key="story">{{ story }}</p>
+          </div>
+          <div id="hud">
+              <span>
+                {{playerName}}
+              </span>
+              <div>
+                  <span>Class: {{ playerClass }}</span>
+              </div>
+              <div>
+                  <span>Weapon: {{ weapon.name }}</span>
+              </div>
+              <div>
+                  <span>Spell: {{ spell.name }}</span>
+              </div>
+              <div>
+                  <span>Gold: {{ gold }}</span>
+              </div>
+              <br>
+              <span>
+                Stats
+              </span>
+              <div v-for="stat in playerStats" :key="stat.name" class="capitalize-first">
+                  <span>{{ stat.name }}: {{ stat.value }}</span>
+              </div>
+              <br>
+              <span>
+                Party
+              </span>
+              <div v-for="member in party" :key="party" class="capitalize-first">
+                  <span>{{ member }}</span>
+              </div>
+          </div>
+        </div>
+        <div id="actions-menu">
+            <!-- Display spinner if isLoading is true -->
+            <div v-if="showLoadingSpinner" class="spinner-container">
+                <i class="fas fa-spinner fa-spin"></i> Loading...
+            </div>
+
+            <!-- Your action buttons, which are hidden when isLoading is true -->
+            <div v-else>
+                <div id="actions" v-for="action in actions" :key="action.action">
+                  <button @click="performAction(action)" class="capitalize-first">{{ action.action }} <br>{{action.governingStat.charAt(0).toUpperCase() + action.governingStat.slice(1).toLowerCase()}} ({{Math.floor(calculateSuccessPercentage(action))}}%)</button>
+                </div>
+            </div>
+         </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+              new Vue({
+          el: '#app',
+          data: {
+            showIntro: true,
+            showClassSelection: false,
+            showStorySelection: false,
+            showGame: false,
+            showLoadingSpinner: false,
+            playerClass: null,
+            playerName: "",
+            spell: null,
+            weapon: null,
+            map: "",
+            scene: "",
+            stories: [],
+            openingStories: [
+              {
+                  description: "You've awakened in a bustling city with no memories, only a peculiar amulet in your hand.",
+                  map: "Bustling Capital City", 
+                  scene: "Street Corner with a Glowing Amulet"
+              },
+              {
+                  description: "After deciphering an ancient map, you stand at the entrance of a forgotten temple.",
+                  map: "Dense Jungle",
+                  scene: "Stone-carved Temple Entrance"
+              },
+              {
+                  description: "On the run from a powerful enemy, you've just boarded a mysterious ship set for unknown shores.",
+                  map: "The Sirene's Gale - A Mysterious Ship",
+                  scene: "Deck under Moonlight"
+              },
+              {
+                  description: "Having sworn an oath to a dying stranger, you find yourself in possession of a cryptic diary.",
+                  map: "Cozy Cottage",
+                  scene: "Dim-lit Room with a Sealed Diary"
+              },
+              {
+                  description: "Under the light of a rare celestial event, you discover a hidden portal in the forest.",
+                  map: "Mystical Forest",
+                  scene: "Clearing with a Shimmering Portal"
+              },
+              {
+                  description: "A renowned inventor has just chosen you as the tester for their groundbreaking device.",
+                  map: "Steam-Powered Laboratory",
+                  scene: "Workbench with Whirring Gadgets"
+              },
+              {
+                  description: "Having rescued a magical creature, you are now bound by an unspoken pact, leading you on an unpredictable journey.",
+                  map: "Rolling Plains and Hills",
+                  scene: "Under a Lone Tree with a Mythical Creature"
+              },
+              {
+                  description: "You've been inducted into a secret society, and tonight is your first clandestine gathering.",
+                  map: "Majestic Manor atop a Hill",
+                  scene: "Chandelier-lit Ballroom with Masked Figures"
+              },
+              {
+                  description: "On the eve of a grand festival, a mysterious figure hands you a mask, urging you to change the course of events.",
+                  map: "Vibrant Town Square",
+                  scene: "Festival Preparations with a Cloaked Stranger"
+              },
+              {
+                  description: "You've just inherited a dilapidated manor, only to find it inhabited by otherworldly beings.",
+                  map: "Old Abandoned Manor",
+                  scene: "Creaky Hallway with Whispers in the Shadows"
+              }
+          ],
+            storyGroup: 1,
+            classes: {
+              Warrior: {
+                weapon: {
+                  name: "Rusty Sword",
+                  governingStat: "strength",
+                  statBoost: 2
+
+                },
+                spell: {
+                  name: "Battle Shout",
+                  governingStat: "charisma",
+                  statBoost: 1
+
+                },
+                stats: [{
+                    name: 'strength',
+                    value: 4
+                  },
+                  {
+                    name: 'intelligence',
+                    value: 1
+                  },
+                  {
+                    name: 'dexterity',
+                    value: 2
+                  },
+                  {
+                    name: 'perception',
+                    value: 3
+                  },
+                  {
+                    name: 'toughness',
+                    value: 3
+                  },
+                  {
+                    name: 'charisma',
+                    value: 2
+                  }
+                ]
+              },
+              Rogue: {
+                weapon: {
+                  name: "Rusty Dagger",
+                  governingStat: "dexterity",
+                  statBoost: 2
+
+                },
+                spell: {
+                  name: "Shadow Veil",
+                  governingStat: "dexterity",
+                  statBoost: 1
+                },
+                stats: [{
+                    name: 'strength',
+                    value: 2
+                  },
+                  {
+                    name: 'intelligence',
+                    value: 2
+                  },
+                  {
+                    name: 'dexterity',
+                    value: 4
+                  },
+                  {
+                    name: 'perception',
+                    value: 3
+                  },
+                  {
+                    name: 'toughness',
+                    value: 2
+                  },
+                  {
+                    name: 'charisma',
+                    value: 3
+                  }
+                ],
+              },
+              Mage: {
+                weapon: {
+                  name: "Gnarled Staff",
+                  governingStat: "intelligence",
+                  statBoost: 2
+
+                },
+                spell: {
+                  name: "Arcane Bolt",
+                  governingStat: "intelligence",
+                  statBoost: 1
+
+                },
+                stats: [{
+                    name: 'strength',
+                    value: 1
+                  },
+                  {
+                    name: 'intelligence',
+                    value: 4
+                  },
+                  {
+                    name: 'dexterity',
+                    value: 2
+                  },
+                  {
+                    name: 'perception',
+                    value: 3
+                  },
+                  {
+                    name: 'toughness',
+                    value: 1
+                  },
+                  {
+                    name: 'charisma',
+                    value: 3
+                  }
+                ]
+              }
+            },
+            playerStats: [{
+                name: 'strength',
+                value: 1
+              },
+              {
+                name: 'intelligence',
+                value: 1
+              },
+              {
+                name: 'dexterity',
+                value: 1
+              },
+              {
+                name: 'perception',
+                value: 1
+              },
+              {
+                name: 'toughness',
+                value: 1
+              },
+              {
+                name: 'charisma',
+                value: 1
+              }
+            ],
+            gold: 0,
+            goldOpportunity: false,
+            actions: [{
+              action: "",
+              governingStat: "",
+              successThreshold: 1
+            }],
+            party: [],
+            partyPrompt:"If whatHappensNext describes a new potential party member, give the player an action to invite them to the party and if they succeed then update the party property with the new members name (party property is an array of names)."
+          },
+          methods: {
+          	startGame: function() {
+              if (!this.playerName) {
+                window.alert("Please enter a name!");
+                return;
+              } else {
+              	this.showClassSelection = true;
+                this.showIntro = false;
+              }
+              // Continue with the game initialization or other logic here
+            },
+            selectClass(selectedClass) {
+              this.playerClass = selectedClass;
+              this.playerStats = this.classes[selectedClass].stats;
+              this.weapon = this.classes[selectedClass].weapon;
+              this.spell = this.classes[selectedClass].spell;
+              this.showClassSelection = false;
+              this.showStorySelection = true;
+            },
+            showNextStoryGroup() {
+                if (this.storyGroup < 4) {
+                    this.storyGroup++;
+                } else {
+                    this.storyGroup = 1; // Or any other behavior you prefer when reaching the end
+                }
+            },
+            selectStory(description) {
+            	story = this.openingStories.find(s => s.description === description);
+
+              if (story) {
+                // Set the selectedStory data property to the matched story object
+                this.map = story.map;
+                this.scene = story.scene;
+                // Now you can access this.selectedStory.map and this.selectedStory.scene whenever needed
+              }
+            	this.stories.push(description);
+              this.performAction(this.actions[0]);
+              this.showStorySelection = false;
+              this.showGame = true;
+            },
+            calculateSuccess(action) {
+              if (!action.governingStat) return true;
+              const successRoll = Math.random() * 20;
+              return successRoll + this.playerStats.find(stat => stat.name === action.governingStat.toLowerCase()).value >= action.successThreshold;
+            },
+            calculateGoldOpportunity() {
+              const successRoll = Math.random() * 20;
+              return successRoll >= 90;
+            },
+            calculateSuccessPercentage(action) {
+              if (!action.governingStat) return 100;
+
+              const playerStatValue = this.playerStats.find(stat => stat.name === action.governingStat.toLowerCase()).value;
+
+              // Calculate the minimum roll needed to succeed
+              const requiredRoll = action.successThreshold - playerStatValue + 1;
+
+              // Calculate the number of possible rolls (from 1 to 20) that result in success
+              const successfulRolls = 21 - requiredRoll;
+
+              // Calculate success percentage
+              const successPercentage = (successfulRolls / 20) * 100;
+
+              return successPercentage;
+            },
+            scrollToBottom() {
+                this.$nextTick(() => {
+                    this.$refs.storyContainer.scrollTop = this.$refs.storyContainer.scrollHeight;
+                });
+            },
+            async performAction(action) {
+              const success = this.calculateSuccess(action);
+              const successRoll = success ? 'succeeded' : 'failed';
+              console.log(this.stories[this.stories.length - 1])
+              const gameState = {
+                previousEvents: this.stories.slice(-3),
+                action: action.action,
+                map: this.map,
+                scene: this.scene,
+                playerName: "",
+                successRoll: successRoll,
+                spell: this.spell,
+                class: this.playerClass,
+                weapons: this.weapons,
+                gold: null,
+                party: this.party,
+                goldOpportunity: this.goldOpportunity,
+                whatHappensNext: '',
+                nextAvailableActions: '',
+              };
+              
+              let basePrompt = "You are the game master. Update the following payload but only return the updated properties. If goldOpportunity is false then do not create an event that can discover gold or valuables. Add whatHappensNext (keep this short and concise) and based on whatHappensNext add 3 relevant nextAvailableActions (as raw, nested json with properties action, successThreshold (1-20 based on difficulty of action), and the appropriate governingStat, stats are limited to strength, perception, dexterity, intelligence, toughness, and charisma). If the player successfully loots gold or valuables (based on the action property) then add the gold value to the gold property (1-50)."
+
+              if (this.party.length > 2) {
+                  basePrompt += partyPrompt;
+              }
+
+              basePrompt += " Finally, update the scene appropriately to suit the surrounding area and change the map to reflect the scene. Only return the JSON payload after updating the appropriate properties: ";
+
+              let messageContent = `${basePrompt} ${JSON.stringify(gameState)}`;
+							
+              const payload = {
+                model: "gpt-3.5-turbo-0301",
+                messages: [
+                  {
+										role: "user",
+                    content: messageContent
+                  }
+                ],
+                max_tokens: 2500
+              }
+              
+              console.log(payload)
+
+              const response = await this.callChatGPTAPI(payload);
+
+              const regex = /{[\s\S]*}/;
+              const matched = response.match(regex);
+              if (matched) {
+                const extractedPayload = matched[0].replace(/\\&quot;/g, '"');
+                const gameResponse = JSON.parse(extractedPayload);
+                this.stories.push(gameResponse.whatHappensNext);
+                this.scrollToBottom();
+                this.actions = gameResponse.nextAvailableActions;
+                this.gold += gameResponse.gold;
+                this.scene = gameResponse.scene;
+                this.map = gameResponse.map;
+                this.party = gameResponse.party;
+                this.showLoadingSpinner = false;
+                console.log(this.actions)
+              } else {
+                console.log("No valid JSON found");
+              }
+            },
+            async callChatGPTAPI(payload) {
+            	this.showLoadingSpinner = true;
+              const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer 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',
+                },
+                body: JSON.stringify(payload),
+              });
+
+              const data = await response.json();
+							console.log(data)
+              return data.choices[0].message.content;
+            }
+          },
+          mounted() {
+            // Initialization code can go here if needed
+          }
+        });
+
+    </script>
+</body>
+
+</html>
